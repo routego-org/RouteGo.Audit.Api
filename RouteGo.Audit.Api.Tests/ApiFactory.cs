@@ -1,0 +1,100 @@
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+namespace RouteGo.Audit.Api.Tests;
+
+/// <summary>
+/// Boots the real host in-process so a slice test drives the app the way a caller does — routing,
+/// model binding, validation, the wire contract, the error pipeline and every middleware all run.
+/// Written once per project (skills-aspnetcore-project-setup/references/test-host.md); slices
+/// consume it and never build their own.
+/// <para>
+/// Two lines here are load-bearing, and both fail silently rather than loudly when removed:
+/// </para>
+/// <para>
+/// 1. <c>UseEnvironment(Environments.Development)</c>. The secret gate is
+/// <c>IHostEnvironment.IsDevelopment()</c>. A host that does not say so runs as <b>Production</b>
+/// and SecretResolver takes the Secrets Manager path — from CI, with no role
+/// (references/secrets.md).
+/// </para>
+/// <para>
+/// 2. The secret is injected as an <b>environment variable</b>, never through <c>UseSetting</c> or
+/// <c>ConfigureAppConfiguration</c>. <c>WebApplication.CreateBuilder</c> re-applies its own sources
+/// — user-secrets included — on top of anything a test appends, and a developer's user-secrets
+/// mirror this very name. The environment-variable provider is registered AFTER user-secrets, so
+/// it is the one source that deterministically wins.
+/// </para>
+/// <para>
+/// <c>Environment.SetEnvironmentVariable</c> is process-global. Every factory in a run that injects
+/// a given name must inject the same value for it, or the classes that disagree must be serialised
+/// into one xunit collection.
+/// </para>
+/// </summary>
+public sealed class ApiFactory : WebApplicationFactory<Program>
+{
+    private readonly string? _secretName;
+    private readonly string? _secretJson;
+    private readonly Action<IServiceCollection>[] _overrides;
+
+    /// <summary>A host that needs no secret — every dependency it would reach for is replaced.</summary>
+    /// <param name="overrides">Test doubles to register over the host's own registrations.</param>
+    public ApiFactory(params Action<IServiceCollection>[] overrides)
+        : this(null, null, overrides)
+    {
+    }
+
+    /// <param name="secretName">
+    /// The app's one secret NAME — the same constant the composition root resolves, so the test
+    /// exercises the real secret contract rather than a test-only config key.
+    /// </param>
+    /// <param name="secretJson">
+    /// Its value, in the platform's standard JSON shape. The mapper that reads it in Development
+    /// and on Lambda is the one under test here too.
+    /// </param>
+    /// <param name="overrides">Test doubles to register over the host's own registrations.</param>
+    public ApiFactory(
+        string? secretName, string? secretJson, params Action<IServiceCollection>[] overrides)
+    {
+        _secretName = secretName;
+        _secretJson = secretJson;
+        _overrides = overrides;
+
+        // Required at startup, and the same for every host in the run. No test host reads the
+        // audit queue — its worker is removed below — so these never need to exist.
+        Environment.SetEnvironmentVariable("AuditEventsQueueUrl", "http://localhost:4566/000000000000/audit-tests");
+        Environment.SetEnvironmentVariable("AuditEventsDeadLetterQueueUrl", "http://localhost:4566/000000000000/audit-dlq-tests");
+    }
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment(Environments.Development);
+
+        if (!string.IsNullOrEmpty(_secretName))
+        {
+            Environment.SetEnvironmentVariable(_secretName, _secretJson);
+        }
+
+        builder.ConfigureTestServices(services =>
+        {
+            // The queue worker would poll an endpoint no test host has; its own tests drive it directly.
+            var workers = services.Where(IsBackgroundWorker).ToList();
+            foreach (ServiceDescriptor worker in workers)
+            {
+                services.Remove(worker);
+            }
+
+            foreach (Action<IServiceCollection> apply in _overrides)
+            {
+                apply(services);
+            }
+        });
+    }
+
+    private static bool IsBackgroundWorker(ServiceDescriptor descriptor)
+    {
+        return typeof(RouteGo.Audit.Api.Common.Messaging.EventQueueService).IsAssignableFrom(descriptor.ImplementationType);
+    }
+}

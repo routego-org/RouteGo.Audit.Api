@@ -1,0 +1,36 @@
+# LOCAL DEVELOPMENT ONLY — nothing here touches a real AWS account.
+#   docker compose up -d                      # LocalStack (audit topic, queue, DLQ) + DynamoDB Local
+#   bash local/dynamodb/create-table.sh       # the audit table
+#   dotnet run --project RouteGo.Audit.Api
+#
+# Already running a LocalStack or DynamoDB Local for another RouteGo service (ports 4566 / 8000)?
+# Then do not start these; run the scripts against them instead, so the other services' audit
+# events reach Audit's queue:
+#   docker exec -i <localstack-container> bash < local/localstack/init-aws.sh
+#   bash local/dynamodb/create-table.sh
+
+services:
+  localstack:
+    image: localstack/localstack:4.4
+    container_name: routego-audit-localstack
+    environment:
+      SERVICES: sqs,sns
+      AWS_DEFAULT_REGION: ap-south-1
+    ports:
+      - "4566:4566"
+    volumes:
+      # Runs once LocalStack is ready: creates the topic, queues and subscription.
+      - ./local/localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+    healthcheck:
+      # Healthy only after the init script has created the audit queue.
+      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name audit-q >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  dynamodb:
+    image: amazon/dynamodb-local:2.6.1
+    container_name: routego-audit-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    ports:
+      - "8000:8000"

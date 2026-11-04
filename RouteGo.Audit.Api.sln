@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RouteGo.Audit.Api", "RouteGo.Audit.Api\RouteGo.Audit.Api.csproj", "{E47FCAFB-15E3-4627-904F-CC624C39DC36}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RouteGo.Audit.Api.Tests", "RouteGo.Audit.Api.Tests\RouteGo.Audit.Api.Tests.csproj", "{05028CA4-9527-441C-A61F-F8A6E52F159F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RouteGo.Audit.Api.AppHost", "RouteGo.Audit.Api.AppHost\RouteGo.Audit.Api.AppHost.csproj", "{8C8338FF-C404-4A2D-919A-78B6DB82EE0F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E47FCAFB-15E3-4627-904F-CC624C39DC36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E47FCAFB-15E3-4627-904F-CC624C39DC36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E47FCAFB-15E3-4627-904F-CC624C39DC36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E47FCAFB-15E3-4627-904F-CC624C39DC36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05028CA4-9527-441C-A61F-F8A6E52F159F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05028CA4-9527-441C-A61F-F8A6E52F159F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05028CA4-9527-441C-A61F-F8A6E52F159F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05028CA4-9527-441C-A61F-F8A6E52F159F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C8338FF-C404-4A2D-919A-78B6DB82EE0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C8338FF-C404-4A2D-919A-78B6DB82EE0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C8338FF-C404-4A2D-919A-78B6DB82EE0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C8338FF-C404-4A2D-919A-78B6DB82EE0F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {61A39E3B-DAE7-4F27-A003-F4C5D70CD5C8}
+	EndGlobalSection
+EndGlobal

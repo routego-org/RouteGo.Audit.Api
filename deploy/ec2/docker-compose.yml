@@ -1,0 +1,36 @@
+# EC2 deployment of the Audit API on routego-secure (the trust zone the audited services do not
+# share). Real AWS is used here: DynamoDB and SQS through the instance role, and Identity's public
+# keys over the private network. There are no secrets to inject.
+#
+# The instance role must hold exactly the table permissions in audit-table-policy.json — that policy,
+# not this service's code, is what keeps the log append-only.
+name: routego-audit
+services:
+  audit:
+    image: routego/audit:latest
+    restart: unless-stopped
+    ports:
+      - "5009:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      AWS_REGION: ap-south-1
+      AuditTableName: routego-audit-log
+      # audit-q receives every AuditRecorded event from routego-audit-events (SNS subscription).
+      AuditEventsQueueUrl: https://sqs.ap-south-1.amazonaws.com/${AWS_ACCOUNT_ID:?set the AWS account id}/audit-q
+      AuditEventsDeadLetterQueueUrl: https://sqs.ap-south-1.amazonaws.com/${AWS_ACCOUNT_ID:?set the AWS account id}/audit-dlq
+      # Identity (routego-core) issues the admin tokens this service checks.
+      IdentityIssuer: ${IDENTITY_ISSUER:?set the issuer Identity writes into its tokens}
+      IdentityAudience: routego
+      IdentityJwksUrl: ${IDENTITY_JWKS_URL:?set Identity's /.well-known/jwks.json address}
+      # Workstation GC: a server-GC heap per core is too much on a small instance.
+      DOTNET_gcServer: "0"
+    logging:
+      # One-server layout: local logs like every other container here (the awslogs driver needs a log
+      # group and CloudWatch permissions this server's role does not have).
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  default:
+    name: ec2_default
+    external: true
